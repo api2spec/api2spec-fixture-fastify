@@ -1,4 +1,4 @@
-import Fastify from 'fastify'
+import Fastify, { FastifyReply } from 'fastify'
 
 interface User {
   id: number
@@ -11,6 +11,23 @@ interface Post {
   userId: number
   title: string
   body: string
+}
+
+/**
+ * Parses a string parameter to an integer and validates it.
+ * Returns the parsed number if valid, or sends a 400 response and returns null if invalid.
+ */
+function parseIdParam(
+  param: string,
+  paramName: string,
+  reply: FastifyReply
+): number | null {
+  const id = parseInt(param, 10)
+  if (Number.isNaN(id)) {
+    reply.code(400).send({ error: `Invalid ${paramName}: must be a valid integer` })
+    return null
+  }
+  return id
 }
 
 export function buildApp() {
@@ -26,8 +43,9 @@ export function buildApp() {
     { id: 2, name: 'Bob', email: 'bob@example.com' },
   ])
 
-  fastify.get<{ Params: { id: string } }>('/users/:id', async (request) => {
-    const id = parseInt(request.params.id)
+  fastify.get<{ Params: { id: string } }>('/users/:id', async (request, reply) => {
+    const id = parseIdParam(request.params.id, 'id', reply)
+    if (id === null) return
     return { id, name: 'Sample User', email: 'user@example.com' }
   })
 
@@ -36,18 +54,22 @@ export function buildApp() {
     return { ...request.body, id: 1 }
   })
 
-  fastify.put<{ Params: { id: string }; Body: User }>('/users/:id', async (request) => {
-    const id = parseInt(request.params.id)
+  fastify.put<{ Params: { id: string }; Body: User }>('/users/:id', async (request, reply) => {
+    const id = parseIdParam(request.params.id, 'id', reply)
+    if (id === null) return
     return { ...request.body, id }
   })
 
   fastify.delete<{ Params: { id: string } }>('/users/:id', async (request, reply) => {
+    const id = parseIdParam(request.params.id, 'id', reply)
+    if (id === null) return
     reply.code(204)
     return null
   })
 
-  fastify.get<{ Params: { userId: string } }>('/users/:userId/posts', async (request) => {
-    const userId = parseInt(request.params.userId)
+  fastify.get<{ Params: { userId: string } }>('/users/:userId/posts', async (request, reply) => {
+    const userId = parseIdParam(request.params.userId, 'userId', reply)
+    if (userId === null) return
     return [{ id: 1, userId, title: 'User Post', body: 'Content' }]
   })
 
@@ -57,8 +79,9 @@ export function buildApp() {
     { id: 2, userId: 1, title: 'Second Post', body: 'Another post' },
   ])
 
-  fastify.get<{ Params: { id: string } }>('/posts/:id', async (request) => {
-    const id = parseInt(request.params.id)
+  fastify.get<{ Params: { id: string } }>('/posts/:id', async (request, reply) => {
+    const id = parseIdParam(request.params.id, 'id', reply)
+    if (id === null) return
     return { id, userId: 1, title: 'Sample Post', body: 'Post body' }
   })
 
